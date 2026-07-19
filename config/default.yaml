@@ -1,0 +1,49 @@
+# HTTP推送：外部程序调用云崽接口发送消息
+server:
+  # 是否启用推送
+  enable: false
+  # 用哪个协议端发送，留空自动选择
+  bot: ""
+  # 接口路径前缀，留空表示直接挂载到云崽根路径
+  path: "/OneBotv11"
+  # 访问 Token 留空表示不校验
+  token: ""
+  # 是否允许浏览器跨域调用
+  cors: true
+  # 推送消息格式，array 为消息段，string 为 CQ 码
+  messageFormat: "array"
+  # 推送消息关键词替换，to 为空表示删除
+  replace: []
+  # 群聊推送命中关键词时，在消息开头艾特指定QQ
+  at: []
+
+# HTTP上报：把云崽收到的消息上报给外部程序
+client:
+  # 是否启用上报
+  enable: false
+  # 上报哪个协议端收到的消息，留空表示全部协议端
+  bot: ""
+  # 外部事件接收地址
+  endpoint: ""
+  # 访问 Token 留空表示不校验
+  token: ""
+  # 上报消息格式，array 为消息段，string 为 CQ 码
+  messageFormat: "array"
+  # 是否上报私聊
+  private: true
+  # 是否上报群聊
+  group: true
+  # 是否上报自身消息
+  self: false
+  # QQ过滤模式，white 只上报名单内 QQ，black 排除名单内 QQ
+  userMode: "black"
+  # QQ名单
+  userList: []
+  # 群过滤模式，white 只上报名单内群，black 排除名单内群
+  groupMode: "black"
+  # 群名单
+  groupList: []
+  # 上报前缀，@bot 表示艾特机器人触发，留空表示不限制前缀
+  prefix: "@bot"
+  # 是否保留文本前缀，机器人艾特始终会自动去掉
+  includePrefix: false
