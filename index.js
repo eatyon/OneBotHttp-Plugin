@@ -1,10 +1,14 @@
-import "./apps/httpServer.js"
-import { OneBotHttpAdmin } from "./apps/admin.js"
-import { OneBotHttpClient } from "./apps/httpClient.js"
-import { OneBotHttpUpdate } from "./apps/update.js"
+Bot.makeLog("mark", "[OneBotHttp] 插件初始化完成")
 
-export const apps = {
-  OneBotHttpAdmin,
-  OneBotHttpClient,
-  OneBotHttpUpdate,
+await import("./apps/httpServer.js")
+
+const appFiles = ["admin.js", "httpClient.js", "update.js"]
+const apps = {}
+
+for (const file of appFiles) {
+  const app = await import(`./apps/${file}`)
+  const name = Object.keys(app)[0]
+  if (name) apps[name] = app[name]
 }
+
+export { apps }

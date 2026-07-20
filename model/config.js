@@ -15,7 +15,8 @@ export const defaultConfig = {
   server: {
     enable: false,
     bot: "",
-    path: "/OneBotv11",
+    baseUrl: "",
+    path: "/push",
     token: "",
     cors: true,
     messageFormat: "array",
@@ -62,15 +63,24 @@ export function normalizePath(routePath) {
   return routePath.replace(/\/+$/, "") || "/"
 }
 
+function normalizeBaseUrl(url) {
+  url = String(url ?? "").trim()
+  if (!url) return ""
+  url = url.replace(/^https?:\/\//i, "")
+  return url.replace(/\/+$/, "")
+}
+
 function normalizeConfig() {
   if ("enable" in config || "path" in config || "token" in config) {
     config.server = {
       ...config.server,
       enable: config.enable ?? config.server?.enable,
+      baseUrl: config.baseUrl ?? config.server?.baseUrl,
       path: config.path ?? config.server?.path,
       token: config.token ?? config.server?.token,
     }
     delete config.enable
+    delete config.baseUrl
     delete config.path
     delete config.token
   }
@@ -81,6 +91,7 @@ function normalizeConfig() {
   config.server.cors = normalizeBoolean(config.server.cors)
   delete config.server.preferGroup
   config.server.bot = String(config.server.bot ?? "").trim()
+  config.server.baseUrl = normalizeBaseUrl(config.server.baseUrl)
   config.server.path = String(config.server.path ?? "").trim()
   config.server.messageFormat = normalizeMessageFormat(config.server.messageFormat)
   config.client = mergeConfig(structuredClone(defaultConfig.client), config.client)
@@ -172,7 +183,9 @@ server:
   enable: ${config.server.enable}
   # 用哪个协议端发送，留空自动选择
   bot: ${quote(config.server.bot)}
-  # 接口路径前缀，留空表示直接挂载到云崽根路径
+  # 推送地址，示例：localhost:3000，留空使用云崽服务器地址，修改后需要重启云崽
+  baseUrl: ${quote(config.server.baseUrl)}
+  # 推送地址后缀，留空表示直接挂载到推送地址路径，修改后需要重启云崽
   path: ${quote(config.server.path)}
   # 访问 Token 留空表示不校验
   token: ${quote(config.server.token)}
@@ -233,10 +246,10 @@ export async function loadConfig() {
         const data = YAML.parse(await fs.readFile(defaultConfigFile, "utf8"))
         mergeConfig(config, data)
       } catch (defaultErr) {
-        if (defaultErr.code !== "ENOENT") logger.error("[OneBotHttp] default config read failed", defaultErr)
+        if (defaultErr.code !== "ENOENT") logger.error("[OneBotHttp] 默认配置读取失败", defaultErr)
       }
     } else {
-      logger.error("[OneBotHttp] config read failed", err)
+      logger.error("[OneBotHttp] 用户配置读取失败", err)
     }
   }
 

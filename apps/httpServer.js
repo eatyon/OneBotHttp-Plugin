@@ -1,11 +1,14 @@
 ﻿import { config, normalizePath } from "../model/config.js"
 import crypto from "node:crypto"
+import http from "node:http"
 
 const service = new (class OneBotHttpServerService {
   constructor() {
-    this.name = "OneBotHttpServer"
+    this.name = "OneBotHttp"
     this.version = "1.0.0"
     this.path = normalizePath(config.server.path)
+    this.listenPath = this.path
+    this.server = null
   }
 
   ok(data = null) {
@@ -78,6 +81,112 @@ const service = new (class OneBotHttpServerService {
     if (typeof body === "string") return body
     if (typeof body === "object") return Object.keys(body).length ? JSON.stringify(body) : ""
     return String(body)
+  }
+
+  baseUrl() {
+    const baseUrl = String(config.server.baseUrl || "").trim()
+    if (baseUrl) return `http://${baseUrl}`.replace(/\/+$/, "")
+    return String(globalThis.Bot?.url || "").replace(/\/+$/, "")
+  }
+
+  listenUrl() {
+    const baseUrl = String(config.server.baseUrl || "").trim()
+    if (!baseUrl) return false
+    try {
+      const url = new URL(`http://${baseUrl}`)
+      if (url.protocol !== "http:") return false
+      return url
+    } catch {
+      return false
+    }
+  }
+
+  joinUrl(base, routePath) {
+    base = String(base || "").replace(/\/+$/, "")
+    routePath = String(routePath || "").replace(/^\/+/, "")
+    return routePath ? `${base}/${routePath}` : base
+  }
+
+  joinPath(basePath, routePath) {
+    const paths = [basePath, routePath]
+      .map(item => String(item || "").replace(/^\/+|\/+$/g, ""))
+      .filter(Boolean)
+    return paths.length ? `/${paths.join("/")}` : "/"
+  }
+
+  async readBody(req) {
+    const chunks = []
+    let size = 0
+    const limit = 50 * 1024 * 1024
+
+    for await (const chunk of req) {
+      size += chunk.length
+      if (size > limit) {
+        const err = new Error("请求体过大")
+        err.statusCode = 413
+        throw err
+      }
+      chunks.push(chunk)
+    }
+
+    if (!chunks.length) return {}
+    const text = Buffer.concat(chunks).toString("utf8")
+    const contentType = String(req.headers["content-type"] || "")
+    if (contentType.includes("application/json")) return JSON.parse(text)
+    if (contentType.includes("application/x-www-form-urlencoded")) return Object.fromEntries(new URLSearchParams(text))
+    return text
+  }
+
+  response(res) {
+    return {
+      setHeader: (...args) => res.setHeader(...args),
+      status(code) {
+        res.statusCode = code
+        return this
+      },
+      send(data) {
+        if (res.writableEnded) return
+        if (Buffer.isBuffer(data) || typeof data === "string") return res.end(data)
+        res.setHeader("content-type", "application/json; charset=utf-8")
+        return res.end(JSON.stringify(data))
+      },
+      end: (...args) => res.end(...args),
+    }
+  }
+
+  async standaloneHandle(req, res) {
+    try {
+      const url = new URL(req.url, "http://127.0.0.1")
+      const mount = this.listenPath === "/" ? "" : this.listenPath
+      if (mount && url.pathname !== mount && !url.pathname.startsWith(`${mount}/`)) {
+        res.statusCode = 404
+        return res.end("Not Found")
+      }
+
+      const routePath = mount ? url.pathname.slice(mount.length) || "/" : url.pathname
+      await this.handle(
+        {
+          method: req.method,
+          headers: req.headers,
+          url: routePath,
+          path: routePath,
+          query: Object.fromEntries(url.searchParams),
+          body: await this.readBody(req),
+        },
+        this.response(res),
+      )
+    } catch (err) {
+      res.statusCode = err.statusCode || 500
+      res.setHeader("content-type", "application/json; charset=utf-8")
+      res.end(JSON.stringify(this.fail(err.message || String(err), res.statusCode)))
+    }
+  }
+
+  logStarted() {
+    if (!config.server.enable) return
+    Bot.makeLog("mark", "[OneBotHttp] HTTP Server 已启动")
+    const base = this.baseUrl()
+    Bot.makeLog("mark", `[OneBotHttp] 推送地址：${base ? this.joinUrl(base, this.path) : "未设置"}`)
   }
 
   getTargetParts(target) {
@@ -295,11 +404,11 @@ const service = new (class OneBotHttpServerService {
     const userId = params.user_id || params.qq
     if (!userId) return this.fail("缺少 user_id")
 
-    const message = this.normalizeMessage(params.message)
-    if (!message.length) return this.fail("缺少 message")
-
     const target = this.getPrivateTarget(userId)
     if (target.error) return target.error
+
+    const message = this.normalizeMessage(params.message)
+    if (!message.length) return this.fail("缺少 message")
 
     const ret = await target.picker.sendMsg(message)
     return this.sendResult(ret)
@@ -309,11 +418,11 @@ const service = new (class OneBotHttpServerService {
     const groupId = params.group_id
     if (!groupId) return this.fail("缺少 group_id")
 
-    const message = this.addKeywordAt(this.normalizeMessage(params.message))
-    if (!message.length) return this.fail("缺少 message")
-
     const target = this.getGroupTarget(groupId)
     if (target.error) return target.error
+
+    const message = this.addKeywordAt(this.normalizeMessage(params.message))
+    if (!message.length) return this.fail("缺少 message")
 
     const ret = await target.picker.sendMsg(message)
     return this.sendResult(ret)
@@ -360,21 +469,40 @@ const service = new (class OneBotHttpServerService {
           return res.status(404).send(this.fail("不支持的接口", 1404))
       }
     } catch (err) {
-      Bot.makeLog("error", ["OneBot HTTP Server 错误", err], this.name)
+      Bot.makeLog("error", ["[OneBotHttp] HTTP Server 错误", err])
       return res.status(500).send(this.fail(err.message || String(err), 1500))
     }
   }
 
   load() {
-    if (!Bot.express) {
-      Bot.makeLog("error", "Bot.express 不存在，OneBot HTTP 推送未加载", this.name)
+    this.path = normalizePath(config.server.path)
+
+    const hasCustomUrl = Boolean(String(config.server.baseUrl || "").trim())
+    const url = this.listenUrl()
+    if (url) {
+      if (!config.server.enable) {
+        globalThis.OneBotHttpServer?.close?.()
+        globalThis.OneBotHttpServer = null
+        return
+      }
+
+      this.listenPath = this.joinPath(url.pathname, this.path)
+      globalThis.OneBotHttpServer?.close?.()
+      this.server = http.createServer(this.standaloneHandle.bind(this))
+      globalThis.OneBotHttpServer = this.server
+      this.server.listen(Number(url.port) || 80, url.hostname, () => this.logStarted())
+      this.server.on("error", err => Bot.makeLog("error", [`[OneBotHttp] HTTP Server 启动失败：${url.origin}`, err]))
+    } else if (hasCustomUrl) {
+      Bot.makeLog("error", `[OneBotHttp] 推送地址格式错误：${config.server.baseUrl}`)
+      return
+    } else if (Bot.express) {
+      this.listenPath = this.path
+      Bot.express.use(this.path, this.handle.bind(this))
+      Bot.express.quiet?.push?.(this.path)
+      this.logStarted()
+    } else {
       return
     }
-
-    this.path = normalizePath(config.server.path)
-    Bot.express.use(this.path, this.handle.bind(this))
-    Bot.express.quiet?.push?.(this.path)
-    Bot.makeLog("mark", `OneBot HTTP Server 已启动 ${this.path}`, this.name)
   }
 })()
 

@@ -1,4 +1,4 @@
-import { config, configSave, normalizePath } from "../model/config.js"
+import { config, configSave } from "../model/config.js"
 
 export class OneBotHttpAdmin extends plugin {
   constructor() {
@@ -10,11 +10,6 @@ export class OneBotHttpAdmin extends plugin {
         {
           reg: "^#[hH][tT][tT][pP]状态$",
           fnc: "status",
-          permission: "master",
-        },
-        {
-          reg: "^#[hH][tT][tT][pP]推送地址$",
-          fnc: "serverAddress",
           permission: "master",
         },
         {
@@ -59,32 +54,6 @@ export class OneBotHttpAdmin extends plugin {
     )
   }
 
-  async serverAddress() {
-    const base = this.baseUrl()
-    const path = normalizePath(config.server.path)
-    const root = this.joinUrl(base, path)
-    const token = config.server.token || "未设置，当前不校验"
-    const msg = [
-      "OneBot HTTP 推送地址",
-      "",
-      "请求地址：",
-      root,
-      "",
-      "Token：",
-      token,
-    ].join("\n")
-
-    if (!this.e.isGroup) return this.reply(msg, true)
-
-    try {
-      await this.e.bot.pickFriend(this.e.user_id).sendMsg(msg)
-      return this.reply("地址已发送至主人的私信了~", true)
-    } catch (err) {
-      logger.error("[OneBotHttp] 推送地址私信发送失败", err)
-      return this.reply("私信发送失败，请私聊发送 #http推送地址", true)
-    }
-  }
-
   botLabel(botId, emptyText) {
     botId = String(botId || "").trim()
     if (!botId) return emptyText
@@ -92,16 +61,6 @@ export class OneBotHttpAdmin extends plugin {
     const bot = globalThis.Bot?.[botId]
     const name = [bot?.adapter?.name || bot?.adapter?.id, bot?.nickname].filter(Boolean).join(" ")
     return name || botId
-  }
-
-  baseUrl() {
-    return String(globalThis.Bot?.url || "").replace(/\/+$/, "") || "云崽地址:端口"
-  }
-
-  joinUrl(base, routePath) {
-    base = String(base || "").replace(/\/+$/, "")
-    routePath = String(routePath || "").replace(/^\/+/, "")
-    return routePath ? `${base}/${routePath}` : base
   }
 
   async enable() {

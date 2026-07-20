@@ -73,10 +73,19 @@ export function supportGuoba() {
           },
         },
         {
-          field: "server.path",
-          label: "推送路径",
+          field: "server.baseUrl",
+          label: "推送地址",
           component: "Input",
-          bottomHelpMessage: "接口路径前缀，留空表示直接挂载到云崽根路径，修改后需要重启云崽",
+          bottomHelpMessage: "示例：localhost:3000，留空使用云崽服务器地址，修改后需要重启云崽",
+          componentProps: {
+            addonBefore: "http://",
+          },
+        },
+        {
+          field: "server.path",
+          label: "推送地址后缀",
+          component: "Input",
+          bottomHelpMessage: "推送地址后缀，留空表示直接挂载到推送地址路径，修改后需要重启云崽",
         },
         {
           field: "server.token",

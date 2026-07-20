@@ -3,7 +3,7 @@ import crypto from "node:crypto"
 
 const client = new (class OneBotHttpClientService {
   constructor() {
-    this.name = "OneBotHttpClient"
+    this.name = "OneBotHttp"
   }
 
   segmentToOneBot(item) {
@@ -221,8 +221,6 @@ const client = new (class OneBotHttpClientService {
     if (!config.client.enable || !config.client.endpoint) return false
     const selfId = String(e.self_id || e.bot?.uin || "")
     if (config.client.bot && selfId !== config.client.bot) return false
-    const prefix = this.matchPrefix(e)
-    if (prefix === false) return false
     if (!config.client.self && this.isSelfMessage(e)) return false
 
     const isGroup = e.isGroup || e.message_type === "group"
@@ -234,6 +232,8 @@ const client = new (class OneBotHttpClientService {
     }
 
     if (!this.matchList(e.user_id, config.client.userMode, config.client.userList)) return false
+    const prefix = this.matchPrefix(e)
+    if (prefix === false) return false
     return prefix
   }
 
@@ -257,7 +257,10 @@ const client = new (class OneBotHttpClientService {
       method: "POST",
       headers,
       body,
-    }).catch(err => Bot.makeLog("debug", ["OneBot HTTP Client 上报失败", err], this.name))
+    }).catch(err => {
+      Bot.makeLog("warn", `[OneBotHttp] HTTP Client 上报失败：${err.message || err}`)
+      Bot.makeLog("debug", ["[OneBotHttp] HTTP Client 上报失败详情", err])
+    })
 
     return true
   }

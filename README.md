@@ -6,10 +6,10 @@
 
 - HTTP推送：外部程序调用本插件的 OneBot 接口，由云崽协议端发送私聊或群聊消息
 - HTTP上报：云崽收到消息后，把消息事件上报给外部程序
-- 支持普通 QQ 号、群号和 QQBot 的 `机器人ID:目标ID` 格式
-- 支持选择推送协议端、上报协议端、Token、签名、CORS
-- 支持 `array` 消息段和 `string` CQ 码格式
-- 支持推送关键词替换和群聊关键词艾特
+- 支持选择推送协议端和上报协议端
+- 支持 Token、签名、CORS 和消息格式配置
+- 支持推送关键词替换、群聊关键词艾特
+- 支持上报前缀、QQ 和群黑白名单过滤
 
 ## 安装
 
@@ -35,21 +35,21 @@ plugins/OneBotHttp-Plugin/config/config.yaml
 
 ## HTTP推送地址
 
-完整地址由云崽服务器地址和推送路径组成。
+完整地址由推送地址和后缀组成，推荐留空使用云崽服务器地址。
 
-默认推送路径：
+默认推送地址后缀：
 
 ```text
-/OneBotv11
+/push
 ```
 
 完整请求地址示例：
 
 ```text
-云崽服务器地址/OneBotv11
+http://localhost:2536/push
 ```
 
-发送 `#http推送地址` 可私聊获取当前请求地址和 Token
+插件启动后，可在云崽日志查看当前推送地址。
 
 ## 上报前缀
 
@@ -78,7 +78,6 @@ plugins/OneBotHttp-Plugin/config/config.yaml
 
 ```text
 #http状态
-#http推送地址
 #http更新
 #http强制更新
 #http推送开启
