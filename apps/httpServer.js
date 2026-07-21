@@ -7,7 +7,6 @@ const service = new (class OneBotHttpServerService {
     this.name = "OneBotHttp"
     this.path = normalizePath(config.server.path)
     this.listenPath = this.path
-    this.server = null
   }
 
   ok(data = null) {
@@ -383,26 +382,26 @@ const service = new (class OneBotHttpServerService {
 
   getPrivateTarget(userId) {
     const parts = this.getTargetParts(userId)
-    if (!parts.scoped && !config.server.bot) return { picker: Bot.pickFriend(String(userId)), sendId: String(userId) }
+    if (!parts.scoped && !config.server.bot) return { picker: Bot.pickFriend(String(userId)) }
 
     const selfId = parts.scoped ? parts.selfId : config.server.bot
     const bot = Bot[selfId]
     if (!bot) return { error: this.fail(`协议端 ${selfId} 未连接`, 1500) }
 
     const sendId = parts.scoped && this.isQQBot(bot) ? String(userId) : parts.targetId
-    return { picker: bot.pickFriend(sendId), sendId }
+    return { picker: bot.pickFriend(sendId) }
   }
 
   getGroupTarget(groupId) {
     const parts = this.getTargetParts(groupId)
-    if (!parts.scoped && !config.server.bot) return { picker: Bot.pickGroup(String(groupId)), sendId: String(groupId) }
+    if (!parts.scoped && !config.server.bot) return { picker: Bot.pickGroup(String(groupId)) }
 
     const selfId = parts.scoped ? parts.selfId : config.server.bot
     const bot = Bot[selfId]
     if (!bot) return { error: this.fail(`协议端 ${selfId} 未连接`, 1500) }
 
     const sendId = parts.scoped && this.isQQBot(bot) ? String(groupId) : parts.targetId
-    return { picker: bot.pickGroup(sendId), sendId }
+    return { picker: bot.pickGroup(sendId) }
   }
 
   async sendPrivate(params) {
@@ -492,10 +491,10 @@ const service = new (class OneBotHttpServerService {
 
       this.listenPath = this.joinPath(url.pathname, this.path)
       globalThis.OneBotHttpServer?.close?.()
-      this.server = http.createServer(this.standaloneHandle.bind(this))
-      globalThis.OneBotHttpServer = this.server
-      this.server.listen(Number(url.port) || 80, url.hostname, () => this.logStarted())
-      this.server.on("error", err => Bot.makeLog("error", [`[OneBotHttp] HTTP Server 启动失败：${url.origin}`, err]))
+      const server = http.createServer(this.standaloneHandle.bind(this))
+      globalThis.OneBotHttpServer = server
+      server.listen(Number(url.port) || 80, url.hostname, () => this.logStarted())
+      server.on("error", err => Bot.makeLog("error", [`[OneBotHttp] HTTP Server 启动失败：${url.origin}`, err]))
     } else if (hasCustomUrl) {
       Bot.makeLog("error", `[OneBotHttp] 推送地址格式错误：${config.server.baseUrl}`)
       return

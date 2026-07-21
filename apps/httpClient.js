@@ -2,10 +2,6 @@
 import crypto from "node:crypto"
 
 const client = new (class OneBotHttpClientService {
-  constructor() {
-    this.name = "OneBotHttp"
-  }
-
   segmentToOneBot(item) {
     if (item === undefined || item === null) return false
     if (typeof item !== "object") return { type: "text", data: { text: String(item) } }
