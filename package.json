@@ -1,5 +1,6 @@
 {
   "name": "OneBotHttp-Plugin",
+  "version": "0.1.0",
   "description": "OneBot v11 HTTP 推送和上报桥接插件",
   "type": "module",
   "author": "eatyon",

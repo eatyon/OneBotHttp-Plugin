@@ -5,7 +5,6 @@ import http from "node:http"
 const service = new (class OneBotHttpServerService {
   constructor() {
     this.name = "OneBotHttp"
-    this.version = "1.0.0"
     this.path = normalizePath(config.server.path)
     this.listenPath = this.path
     this.server = null
@@ -184,9 +183,9 @@ const service = new (class OneBotHttpServerService {
 
   logStarted() {
     if (!config.server.enable) return
-    Bot.makeLog("mark", "[OneBotHttp] HTTP Server 已启动")
+    Bot.makeLog("info", "[OneBotHttp] HTTP Server 已启动")
     const base = this.baseUrl()
-    Bot.makeLog("mark", `[OneBotHttp] 推送地址：${base ? this.joinUrl(base, this.path) : "未设置"}`)
+    Bot.makeLog("info", `[OneBotHttp] 推送地址：${base ? this.joinUrl(base, this.path) : "未设置"}`)
   }
 
   getTargetParts(target) {
@@ -454,7 +453,6 @@ const service = new (class OneBotHttpServerService {
           return res.send(
             this.ok({
               app_name: this.name,
-              app_version: this.version,
               protocol_version: "v11",
             }),
           )

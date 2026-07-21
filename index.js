@@ -1,4 +1,7 @@
-Bot.makeLog("mark", "[OneBotHttp] 插件初始化完成")
+const { config } = await import("./model/config.js")
+
+Bot.makeLog("info", "[OneBotHttp] 插件初始化完成")
+if (config.server.enable) Bot.makeLog("info", "[OneBotHttp] HTTP Server 启动中")
 
 await import("./apps/httpServer.js")
 
