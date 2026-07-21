@@ -375,6 +375,12 @@ const service = new (class OneBotHttpServerService {
     return this.ok({ message_id: this.messageId(ret) })
   }
 
+  async sendWithNoQWildRoute(target, message) {
+    const send = () => target.picker.sendMsg(message)
+    if (globalThis.QWild?.withNoRoute) return globalThis.QWild.withNoRoute(send)
+    return send()
+  }
+
   getPrivateTarget(userId) {
     const parts = this.getTargetParts(userId)
     if (!parts.scoped && !config.server.bot) return { picker: Bot.pickFriend(String(userId)), sendId: String(userId) }
@@ -409,7 +415,7 @@ const service = new (class OneBotHttpServerService {
     const message = this.normalizeMessage(params.message)
     if (!message.length) return this.fail("缺少 message")
 
-    const ret = await target.picker.sendMsg(message)
+    const ret = await this.sendWithNoQWildRoute(target, message)
     return this.sendResult(ret)
   }
 
@@ -423,7 +429,7 @@ const service = new (class OneBotHttpServerService {
     const message = this.addKeywordAt(this.normalizeMessage(params.message))
     if (!message.length) return this.fail("缺少 message")
 
-    const ret = await target.picker.sendMsg(message)
+    const ret = await this.sendWithNoQWildRoute(target, message)
     return this.sendResult(ret)
   }
 

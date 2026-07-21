@@ -86,6 +86,14 @@ http://localhost:2536/push
 #http上报关闭
 ```
 
+### QWild-Plugin 兼容
+
+已兼容 QWild-Plugin。
+
+使用 HTTP 推送时，会按 OneBotHttp-Plugin 指定的协议发送，不会被 QWild 的主动消息接管影响。
+
+未安装 QWild-Plugin 不影响使用。
+
 ## 鸣谢
 
 感谢 [TRSS-Yunzai](https://github.com/TimeRainStarSky/Yunzai)
