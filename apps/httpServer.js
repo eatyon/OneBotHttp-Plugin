@@ -501,6 +501,7 @@ const service = new (class OneBotHttpServerService {
     } else if (Bot.express) {
       this.listenPath = this.path
       Bot.express.use(this.path, this.handle.bind(this))
+      Bot.express.skip_auth?.push?.(this.path)
       Bot.express.quiet?.push?.(this.path)
       this.logStarted()
     } else {
