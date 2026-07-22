@@ -30,7 +30,8 @@ git clone https://github.com/eatyon/OneBotHttp-Plugin.git plugins/OneBotHttp-Plu
 用户配置文件：
 
 ```text
-plugins/OneBotHttp-Plugin/config/config.yaml
+plugins/OneBotHttp-Plugin/config/server.yaml
+plugins/OneBotHttp-Plugin/config/client.yaml
 ```
 
 ## HTTP推送地址

@@ -202,15 +202,145 @@ const service = new (class OneBotHttpServerService {
     return bot?.version?.id === "QQBot" || bot?.adapter?.id === "QQBot"
   }
 
-  replaceText(text) {
+  atToken(text) {
+    return `{at:${String(text ?? "")}}`
+  }
+
+  isAnyAtToken(text) {
+    return String(text ?? "") === "{at:*}"
+  }
+
+  isAtRule(text) {
+    return /^\{at:[^}]*\}$/.test(String(text ?? ""))
+  }
+
+  decodeReplaceValue(text) {
+    return String(text ?? "").replace(/\\n/g, "\n")
+  }
+
+  replaceListValues(list) {
+    if (!Array.isArray(list)) return []
+    return list
+      .map(item => this.decodeReplaceValue(item).trim())
+      .filter(Boolean)
+  }
+
+  messageAtIds(message) {
+    return message
+      .filter(item => item.type === "at" && item.qq)
+      .map(item => String(item.qq))
+  }
+
+  hasReplaceKeyword(keyword, text, atIds) {
+    if (this.isAnyAtToken(keyword)) return atIds.length > 0
+    if (this.isAtRule(keyword)) return atIds.includes(keyword.slice(4, -1))
+    return text.includes(keyword)
+  }
+
+  shouldApplyReplace(item, text, atIds) {
+    const excludes = this.replaceListValues(item.excludes)
+    if (excludes.some(keyword => this.hasReplaceKeyword(keyword, text, atIds))) return false
+
+    const keywords = this.replaceListValues(item.keywords)
+    if (!keywords.length) return true
+    if (item.keywordMode === "any") return keywords.some(keyword => this.hasReplaceKeyword(keyword, text, atIds))
+    return keywords.every(keyword => this.hasReplaceKeyword(keyword, text, atIds))
+  }
+
+  replaceTextValue(text, conditionText, atIds) {
     text = String(text ?? "")
     const replace = config.server.replace || []
     if (!replace.length) return text
     for (const item of replace) {
-      if (!item.from) continue
-      text = text.split(String(item.from)).join(String(item.to ?? ""))
+      if (!this.shouldApplyReplace(item, conditionText, atIds)) continue
+      for (const from of this.replaceListValues(item.from)) {
+        if (this.isAtRule(from)) continue
+        text = text.split(from).join(this.decodeReplaceValue(item.to))
+      }
     }
     return text
+  }
+
+  splitAtText(text, baseType = "text") {
+    text = String(text ?? "")
+    const regexp = /\{at:([^}]*)\}/g
+    const msgs = []
+    let lastIndex = 0
+    let match
+
+    while ((match = regexp.exec(text))) {
+      if (match.index > lastIndex) msgs.push({ type: baseType, [baseType === "markdown" ? "data" : "text"]: text.slice(lastIndex, match.index) })
+      if (match[1] && match[1] !== "*") {
+        msgs.push({ type: "at", qq: match[1] })
+      } else {
+        msgs.push({ type: baseType, [baseType === "markdown" ? "data" : "text"]: match[0] })
+      }
+      lastIndex = regexp.lastIndex
+    }
+
+    if (lastIndex < text.length) msgs.push({ type: baseType, [baseType === "markdown" ? "data" : "text"]: text.slice(lastIndex) })
+    return msgs.filter(item => item.type !== baseType || item.text || item.data)
+  }
+
+  mergeTextSegments(message) {
+    const msgs = []
+    for (const item of message) {
+      const last = msgs[msgs.length - 1]
+      if (item.type === "text" && last?.type === "text") {
+        last.text = `${last.text || ""}${item.text || ""}`
+        continue
+      }
+      if (item.type === "markdown" && last?.type === "markdown") {
+        last.data = `${last.data || ""}${item.data || ""}`
+        continue
+      }
+      msgs.push(item)
+    }
+    return msgs
+  }
+
+  replaceAtSegment(item, conditionText, atIds) {
+    const replace = config.server.replace || []
+    if (!replace.length || item.type !== "at") return [item]
+
+    const token = this.atToken(item.qq)
+    const rule = replace.find(i => {
+      if (!this.shouldApplyReplace(i, conditionText, atIds)) return false
+      return this.replaceListValues(i?.from).some(from => from === token || this.isAnyAtToken(from))
+    })
+    if (!rule) return [item]
+
+    const text = this.decodeReplaceValue(rule.to)
+    if (!text) return []
+    return this.splitAtText(text, "text")
+  }
+
+  replaceTextSegment(item, conditionText, atIds) {
+    const replace = config.server.replace || []
+    if (!replace.length || (item.type !== "text" && item.type !== "markdown")) return [item]
+
+    const key = item.type === "markdown" ? "data" : "text"
+    const source = String(item[key] ?? "")
+    const text = this.replaceTextValue(source, conditionText, atIds)
+    if (text === source) return [item]
+    return this.splitAtText(text, item.type)
+  }
+
+  applyReplace(message) {
+    const replace = config.server.replace || []
+    if (!replace.length) return message
+
+    const conditionText = this.messageText(message)
+    const atIds = this.messageAtIds(message)
+    const msgs = []
+    for (const item of message) {
+      if (item.type === "at") {
+        msgs.push(...this.replaceAtSegment(item, conditionText, atIds))
+        continue
+      }
+      msgs.push(...this.replaceTextSegment(item, conditionText, atIds))
+    }
+    return this.mergeTextSegments(msgs)
   }
 
   messageText(message) {
@@ -269,7 +399,7 @@ const service = new (class OneBotHttpServerService {
     let match
 
     while ((match = regexp.exec(source))) {
-      if (match.index > lastIndex) msgs.push({ type: "text", text: this.replaceText(this.cqDecode(source.slice(lastIndex, match.index))) })
+      if (match.index > lastIndex) msgs.push({ type: "text", text: this.cqDecode(source.slice(lastIndex, match.index)) })
 
       const type = match[1]
       const data = this.parseCqData(match[2]?.slice(1))
@@ -289,20 +419,20 @@ const service = new (class OneBotHttpServerService {
           msgs.push({ type, file: data.file || data.url, name: data.name })
           break
         default:
-          msgs.push({ type: "text", text: this.replaceText(this.cqDecode(match[0])) })
+          msgs.push({ type: "text", text: this.cqDecode(match[0]) })
       }
       lastIndex = regexp.lastIndex
     }
 
-    if (lastIndex < source.length) msgs.push({ type: "text", text: this.replaceText(this.cqDecode(source.slice(lastIndex))) })
+    if (lastIndex < source.length) msgs.push({ type: "text", text: this.cqDecode(source.slice(lastIndex)) })
     return msgs.filter(item => item.type !== "text" || item.text)
   }
 
   normalizeMessage(message) {
     if (message === undefined || message === null) return []
     if (typeof message === "string" || typeof message === "number" || typeof message === "boolean") {
-      if (config.server.messageFormat === "string") return this.parseCqMessage(message)
-      return [{ type: "text", text: this.replaceText(message) }]
+      if (config.server.messageFormat === "string") return this.applyReplace(this.parseCqMessage(message))
+      return this.applyReplace([{ type: "text", text: String(message) }])
     }
     if (!Array.isArray(message)) message = [message]
 
@@ -314,7 +444,7 @@ const service = new (class OneBotHttpServerService {
           msgs.push(...this.parseCqMessage(item))
           continue
         }
-        msgs.push({ type: "text", text: this.replaceText(item) })
+        msgs.push({ type: "text", text: String(item) })
         continue
       }
 
@@ -323,7 +453,7 @@ const service = new (class OneBotHttpServerService {
 
       switch (type) {
         case "text":
-          if (data.text !== undefined) msgs.push({ type: "text", text: this.replaceText(data.text) })
+          if (data.text !== undefined) msgs.push({ type: "text", text: String(data.text) })
           break
         case "image":
           msgs.push({ type: "image", file: data.file || data.url, summary: data.summary })
@@ -340,17 +470,30 @@ const service = new (class OneBotHttpServerService {
           msgs.push({ type, file: data.file || data.url, name: data.name })
           break
         case "markdown":
-          msgs.push({ type: "markdown", data: this.replaceText(data.content || data.text || data.data || "") })
+          msgs.push({ type: "markdown", data: String(data.content || data.text || data.data || "") })
           break
         case "raw":
           msgs.push({ type: "raw", data: data.data ?? data })
           break
         default:
-          msgs.push({ type: "text", text: this.replaceText(data.text ?? Bot.String(item)) })
+          msgs.push({ type: "text", text: String(data.text ?? Bot.String(item)) })
       }
     }
 
-    return msgs
+    return this.applyReplace(msgs)
+  }
+
+  formatReceiveTime(date) {
+    const pad = value => String(value).padStart(2, "0")
+    return `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())} ${pad(date.getHours())}:${pad(date.getMinutes())}:${pad(date.getSeconds())}`
+  }
+
+  addReceiveTime(message, receiveTime) {
+    if (!receiveTime) return message
+    return [
+      { type: "text", text: `[${this.formatReceiveTime(receiveTime)}]\n` },
+      ...message,
+    ]
   }
 
   messageId(ret) {
@@ -404,46 +547,47 @@ const service = new (class OneBotHttpServerService {
     return { picker: bot.pickGroup(sendId) }
   }
 
-  async sendPrivate(params) {
+  async sendPrivate(params, receiveTime) {
     const userId = params.user_id || params.qq
     if (!userId) return this.fail("缺少 user_id")
 
     const target = this.getPrivateTarget(userId)
     if (target.error) return target.error
 
-    const message = this.normalizeMessage(params.message)
+    const message = this.addReceiveTime(this.normalizeMessage(params.message), receiveTime)
     if (!message.length) return this.fail("缺少 message")
 
     const ret = await this.sendWithNoQWildRoute(target, message)
     return this.sendResult(ret)
   }
 
-  async sendGroup(params) {
+  async sendGroup(params, receiveTime) {
     const groupId = params.group_id
     if (!groupId) return this.fail("缺少 group_id")
 
     const target = this.getGroupTarget(groupId)
     if (target.error) return target.error
 
-    const message = this.addKeywordAt(this.normalizeMessage(params.message))
+    const message = this.addReceiveTime(this.addKeywordAt(this.normalizeMessage(params.message)), receiveTime)
     if (!message.length) return this.fail("缺少 message")
 
     const ret = await this.sendWithNoQWildRoute(target, message)
     return this.sendResult(ret)
   }
 
-  async sendMsg(params) {
-    if (params.message_type === "private") return this.sendPrivate(params)
-    if (params.message_type === "group") return this.sendGroup(params)
+  async sendMsg(params, receiveTime) {
+    if (params.message_type === "private") return this.sendPrivate(params, receiveTime)
+    if (params.message_type === "group") return this.sendGroup(params, receiveTime)
 
-    if (params.user_id || params.qq) return this.sendPrivate(params)
-    if (params.group_id) return this.sendGroup(params)
+    if (params.user_id || params.qq) return this.sendPrivate(params, receiveTime)
+    if (params.group_id) return this.sendGroup(params, receiveTime)
 
     return this.fail("缺少 user_id 或 group_id")
   }
 
   async handle(req, res, next) {
     try {
+      const receiveTime = config.server.addReceiveTime ? new Date() : null
       this.applyCors(req, res)
       if (req.method === "OPTIONS" && config.server.cors) return res.status(204).end()
 
@@ -462,11 +606,11 @@ const service = new (class OneBotHttpServerService {
             }),
           )
         case "send_private_msg":
-          return res.send(await this.sendPrivate(this.params(req)))
+          return res.send(await this.sendPrivate(this.params(req), receiveTime))
         case "send_group_msg":
-          return res.send(await this.sendGroup(this.params(req)))
+          return res.send(await this.sendGroup(this.params(req), receiveTime))
         case "send_msg":
-          return res.send(await this.sendMsg(this.params(req)))
+          return res.send(await this.sendMsg(this.params(req), receiveTime))
         default:
           if (this.path === "/" && typeof next === "function") return next()
           return res.status(404).send(this.fail("不支持的接口", 1404))

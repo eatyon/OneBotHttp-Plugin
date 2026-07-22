@@ -100,6 +100,12 @@ export function supportGuoba() {
           bottomHelpMessage: "允许浏览器跨域调用推送接口",
         },
         {
+          field: "server.addReceiveTime",
+          label: "添加请求时间",
+          component: "Switch",
+          bottomHelpMessage: "开启后在推送消息开头添加收到请求的时间",
+        },
+        {
           field: "server.messageFormat",
           label: "推送消息格式",
           component: "Select",
@@ -115,20 +121,59 @@ export function supportGuoba() {
           field: "server.replace",
           label: "关键词替换",
           component: "GSubForm",
-          bottomHelpMessage: "发送前替换推送消息内容，替换内容留空表示删除",
+          bottomHelpMessage: "发送前处理推送文本，按触发条件替换指定内容",
           componentProps: {
             multiple: true,
             schemas: [
               {
+                field: "keywords",
+                label: "触发条件",
+                component: "Select",
+                bottomHelpMessage: "输入后回车添加，留空表示直接替换，支持 \\n 换行和 {at:*} 艾特条件",
+                componentProps: {
+                  mode: "tags",
+                  options: [],
+                },
+              },
+              {
+                field: "keywordMode",
+                label: "触发模式",
+                component: "Select",
+                defaultValue: "all",
+                bottomHelpMessage: "存在触发条件时生效，默认全部命中",
+                componentProps: {
+                  options: [
+                    { label: "全部命中", value: "all" },
+                    { label: "命中其一", value: "any" },
+                  ],
+                },
+              },
+              {
+                field: "excludes",
+                label: "排除条件",
+                component: "Select",
+                bottomHelpMessage: "输入后回车添加，命中任意一个就不替换，支持 \\n 换行和 {at:*} 艾特条件",
+                componentProps: {
+                  mode: "tags",
+                  options: [],
+                },
+              },
+              {
                 field: "from",
-                label: "关键词",
-                component: "Input",
+                label: "被替换内容",
+                component: "Select",
                 required: true,
+                bottomHelpMessage: "输入后回车添加，支持多选和 \\n 换行，{at:*} 可匹配任意真实艾特",
+                componentProps: {
+                  mode: "tags",
+                  options: [],
+                },
               },
               {
                 field: "to",
                 label: "替换为",
                 component: "Input",
+                bottomHelpMessage: "留空表示删除，支持 \\n 表示换行和 {at:目标ID} 艾特",
               },
             ],
           },
