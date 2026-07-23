@@ -518,7 +518,10 @@ const service = new (class OneBotHttpServerService {
   }
 
   async sendWithNoQWildRoute(target, message) {
-    const send = () => target.picker.sendMsg(message)
+    const picker = target?.picker
+    if (!picker?.sendMsg) return { error: [{ message: "接收目标无效" }] }
+
+    const send = () => picker.sendMsg(message)
     if (globalThis.QWild?.withNoRoute) return globalThis.QWild.withNoRoute(send)
     return send()
   }
