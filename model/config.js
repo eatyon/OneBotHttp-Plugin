@@ -23,6 +23,7 @@ export const defaultConfig = {
     cors: true,
     addReceiveTime: false,
     messageFormat: "array",
+    block: [],
     replace: [],
     at: [],
   },
@@ -82,6 +83,7 @@ function normalizeConfig() {
   config.server.baseUrl = normalizeBaseUrl(config.server.baseUrl)
   config.server.path = String(config.server.path ?? "").trim()
   config.server.messageFormat = normalizeMessageFormat(config.server.messageFormat)
+  config.server.block = normalizeBlock(config.server.block)
   config.client = mergeConfig(structuredClone(defaultConfig.client), config.client)
   config.client.enable = normalizeBoolean(config.client.enable)
   config.client.private = normalizeBoolean(config.client.private)
@@ -154,6 +156,21 @@ function normalizeReplaceList(value) {
   return []
 }
 
+function normalizeBlock(value) {
+  if (!Array.isArray(value)) return []
+  return value
+    .map(item => ({
+      keywords: normalizeReplaceList(item?.keywords),
+      mode: item?.mode === "all" ? "all" : "any",
+    }))
+    .filter(item => item.keywords.length)
+}
+
+function stringifyBlock(list) {
+  if (!list?.length) return "[]"
+  return `\n${list.map(item => `  - ${stringifyFieldList("keywords", item.keywords, 6)}\n    mode: ${quote(item.mode)}`).join("\n")}`
+}
+
 function stringifyReplace(list) {
   if (!list?.length) return "[]"
   return `\n${list.map(item => `  - ${stringifyFieldList("keywords", item.keywords, 6)}\n    keywordMode: ${quote(item.keywordMode)}\n    ${stringifyFieldList("excludes", item.excludes, 6)}\n    ${stringifyFieldList("from", item.from, 6)}\n    to: ${quote(item.to)}`).join("\n")}`
@@ -192,6 +209,8 @@ cors: ${config.server.cors}
 addReceiveTime: ${config.server.addReceiveTime}
 # 推送消息格式，array 为消息段，string 为 CQ 码
 messageFormat: ${quote(config.server.messageFormat)}
+# 推送消息关键词拦截，命中后返回成功但不发送，支持 \\n 换行和 {at:*} 艾特条件
+block: ${stringifyBlock(config.server.block)}
 # 推送消息关键词替换，触发条件、排除条件和被替换内容可多选，to 为空表示删除，支持 \\n 换行和 {at:目标ID} 艾特，{at:*} 可匹配任意真实艾特
 replace: ${stringifyReplace(config.server.replace)}
 # 群聊推送命中关键词时，在消息开头艾特指定QQ

@@ -7,8 +7,8 @@
 - HTTP推送：外部程序调用本插件的 OneBot 接口，由云崽协议端发送私聊或群聊消息
 - HTTP上报：云崽收到消息后，把消息事件上报给外部程序
 - 支持选择推送协议端和上报协议端
-- 支持 Token、签名、CORS 和消息格式配置
-- 支持推送关键词替换、群聊关键词艾特
+- 支持 Token、签名、CORS、消息格式和请求时间开关
+- 支持推送关键词拦截、关键词替换、群聊关键词艾特
 - 支持上报前缀、QQ 和群黑白名单过滤
 
 ## 安装
@@ -34,6 +34,13 @@ plugins/OneBotHttp-Plugin/config/server.yaml
 plugins/OneBotHttp-Plugin/config/client.yaml
 ```
 
+默认配置文件：
+
+```text
+plugins/OneBotHttp-Plugin/config/server_default.yaml
+plugins/OneBotHttp-Plugin/config/client_default.yaml
+```
+
 ## HTTP推送地址
 
 完整地址由推送地址和后缀组成，推荐留空使用云崽服务器地址。
@@ -51,6 +58,16 @@ http://localhost:2536/push
 ```
 
 插件启动后，可在云崽日志查看当前推送地址。
+
+## 推送处理
+
+HTTP推送会按以下顺序处理：
+
+```text
+关键词拦截 -> 关键词替换 -> 群聊关键词艾特 -> 添加请求时间（请求进入时记录） -> 发送消息
+```
+
+关键词拦截命中后不会发送消息，接口仍返回成功。
 
 ## 上报前缀
 
@@ -75,16 +92,13 @@ http://localhost:2536/push
 
 ## 命令
 
-所有命令仅主人可用，`http` 支持大小写
+所有命令仅主人可用，`HTTP` 支持大小写
 
 ```text
-#http状态
-#http更新
-#http强制更新
-#http推送开启
-#http推送关闭
-#http上报开启
-#http上报关闭
+#HTTP状态
+#HTTP更新 / #HTTP强制更新
+#HTTP推送开启 / #HTTP推送关闭
+#HTTP上报开启 / #HTTP上报关闭
 ```
 
 ### QWild-Plugin 兼容

@@ -15,6 +15,8 @@ cors: true
 addReceiveTime: false
 # 推送消息格式，array 为消息段，string 为 CQ 码
 messageFormat: "array"
+# 推送消息关键词拦截，命中后返回成功但不发送，支持 \n 换行和 {at:*} 艾特条件
+block: []
 # 推送消息关键词替换，触发条件、排除条件和被替换内容可多选，to 为空表示删除，支持 \n 换行和 {at:目标ID} 艾特，{at:*} 可匹配任意真实艾特
 replace: []
 # 群聊推送命中关键词时，在消息开头艾特指定QQ

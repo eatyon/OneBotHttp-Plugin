@@ -247,6 +247,20 @@ const service = new (class OneBotHttpServerService {
     return keywords.every(keyword => this.hasReplaceKeyword(keyword, text, atIds))
   }
 
+  isBlocked(message) {
+    const rules = config.server.block || []
+    if (!rules.length) return false
+    const text = this.messageText(message)
+    const atIds = this.messageAtIds(message)
+
+    return rules.some(rule => {
+      const keywords = this.replaceListValues(rule.keywords)
+      if (!keywords.length) return false
+      if (rule.mode === "all") return keywords.every(keyword => this.hasReplaceKeyword(keyword, text, atIds))
+      return keywords.some(keyword => this.hasReplaceKeyword(keyword, text, atIds))
+    })
+  }
+
   replaceTextValue(text, conditionText, atIds) {
     text = String(text ?? "")
     const replace = config.server.replace || []
@@ -428,11 +442,11 @@ const service = new (class OneBotHttpServerService {
     return msgs.filter(item => item.type !== "text" || item.text)
   }
 
-  normalizeMessage(message) {
+  normalizeMessage(message, applyReplace = true) {
     if (message === undefined || message === null) return []
     if (typeof message === "string" || typeof message === "number" || typeof message === "boolean") {
-      if (config.server.messageFormat === "string") return this.applyReplace(this.parseCqMessage(message))
-      return this.applyReplace([{ type: "text", text: String(message) }])
+      const msgs = config.server.messageFormat === "string" ? this.parseCqMessage(message) : [{ type: "text", text: String(message) }]
+      return applyReplace ? this.applyReplace(msgs) : msgs
     }
     if (!Array.isArray(message)) message = [message]
 
@@ -480,7 +494,7 @@ const service = new (class OneBotHttpServerService {
       }
     }
 
-    return this.applyReplace(msgs)
+    return applyReplace ? this.applyReplace(msgs) : msgs
   }
 
   formatReceiveTime(date) {
@@ -515,6 +529,14 @@ const service = new (class OneBotHttpServerService {
     }
 
     return this.ok({ message_id: this.messageId(ret) })
+  }
+
+  blockResult() {
+    return {
+      ...this.ok({ message_id: "" }),
+      message: "消息已拦截",
+      wording: "消息已拦截",
+    }
   }
 
   async sendWithNoQWildRoute(target, message) {
@@ -557,10 +579,14 @@ const service = new (class OneBotHttpServerService {
     const target = this.getPrivateTarget(userId)
     if (target.error) return target.error
 
-    const message = this.addReceiveTime(this.normalizeMessage(params.message), receiveTime)
+    const rawMessage = this.normalizeMessage(params.message, false)
+    if (!rawMessage.length) return this.fail("缺少 message")
+    if (this.isBlocked(rawMessage)) return this.blockResult()
+
+    const message = this.applyReplace(rawMessage)
     if (!message.length) return this.fail("缺少 message")
 
-    const ret = await this.sendWithNoQWildRoute(target, message)
+    const ret = await this.sendWithNoQWildRoute(target, this.addReceiveTime(message, receiveTime))
     return this.sendResult(ret)
   }
 
@@ -571,10 +597,14 @@ const service = new (class OneBotHttpServerService {
     const target = this.getGroupTarget(groupId)
     if (target.error) return target.error
 
-    const message = this.addReceiveTime(this.addKeywordAt(this.normalizeMessage(params.message)), receiveTime)
+    const rawMessage = this.normalizeMessage(params.message, false)
+    if (!rawMessage.length) return this.fail("缺少 message")
+    if (this.isBlocked(rawMessage)) return this.blockResult()
+
+    const message = this.applyReplace(rawMessage)
     if (!message.length) return this.fail("缺少 message")
 
-    const ret = await this.sendWithNoQWildRoute(target, message)
+    const ret = await this.sendWithNoQWildRoute(target, this.addReceiveTime(this.addKeywordAt(message), receiveTime))
     return this.sendResult(ret)
   }
 

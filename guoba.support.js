@@ -118,6 +118,41 @@ export function supportGuoba() {
           },
         },
         {
+          field: "server.block",
+          label: "关键词拦截",
+          component: "GSubForm",
+          bottomHelpMessage: "命中后不发送消息，接口仍返回成功",
+          componentProps: {
+            multiple: true,
+            schemas: [
+              {
+                field: "keywords",
+                label: "拦截条件",
+                component: "Select",
+                required: true,
+                bottomHelpMessage: "输入后回车添加，支持 \\n 换行和 {at:*} 艾特条件",
+                componentProps: {
+                  mode: "tags",
+                  options: [],
+                },
+              },
+              {
+                field: "mode",
+                label: "拦截模式",
+                component: "Select",
+                defaultValue: "any",
+                bottomHelpMessage: "默认命中其一",
+                componentProps: {
+                  options: [
+                    { label: "命中其一", value: "any" },
+                    { label: "全部命中", value: "all" },
+                  ],
+                },
+              },
+            ],
+          },
+        },
+        {
           field: "server.replace",
           label: "关键词替换",
           component: "GSubForm",
