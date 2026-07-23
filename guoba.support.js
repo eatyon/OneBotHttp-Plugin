@@ -1,5 +1,12 @@
 ﻿import { config, configSave } from "./model/config.js"
 
+const variableHelpMessage = [
+  "{at:*} 任意艾特",
+  "{at:all} 全体艾特",
+  "{at:目标ID} 指定艾特",
+  "\\n 换行",
+]
+
 function makeOption(label, value) {
   value = String(value ?? "")
   return {
@@ -8,28 +15,62 @@ function makeOption(label, value) {
   }
 }
 
+function uniqueOptions(options) {
+  const map = new Map()
+  for (const item of options) {
+    if (!item?.value || map.has(item.value)) continue
+    map.set(item.value, item)
+  }
+  return Array.from(map.values())
+}
+
+function adapterName(bot) {
+  return bot?.adapter?.name || bot?.version?.name || bot?.adapter?.id || bot?.version?.id || ""
+}
+
+function isStdinBot(bot, id) {
+  const text = [id, adapterName(bot), bot?.nickname, bot?.name].filter(Boolean).join(" ").toLowerCase()
+  return text.includes("stdin") || text.includes("标准输入")
+}
+
+function botEntries(selectedBot = "") {
+  selectedBot = String(selectedBot || "").trim()
+  return Array.from(globalThis.Bot?.uin || [])
+    .map(id => [String(id), globalThis.Bot?.[id]])
+    .filter(([id, bot]) => bot && !isStdinBot(bot, id))
+    .filter(([id]) => !selectedBot || id === selectedBot)
+}
+
 function friendOptions() {
-  const map = globalThis.Bot?.fl || new Map()
-  return Array.from(map.entries())
-    .map(([id, item]) => makeOption(item?.nickname || item?.name || item?.remark, id))
-    .filter(item => item.value)
+  const options = []
+  for (const [, bot] of botEntries(config.client.bot)) {
+    const map = bot?.fl || bot?.getFriendMap?.()
+    if (!map?.entries) continue
+    for (const [id, item] of map.entries()) {
+      options.push(makeOption(item?.nickname || item?.name || item?.remark, id))
+    }
+  }
+  return uniqueOptions(options)
 }
 
 function groupOptions() {
-  const map = globalThis.Bot?.gl || new Map()
-  return Array.from(map.entries())
-    .map(([id, item]) => makeOption(item?.group_name || item?.name, id))
-    .filter(item => item.value)
+  const options = []
+  for (const [, bot] of botEntries(config.client.bot)) {
+    const map = bot?.gl || bot?.getGroupMap?.()
+    if (!map?.entries) continue
+    for (const [id, item] of map.entries()) {
+      options.push(makeOption(item?.group_name || item?.name, id))
+    }
+  }
+  return uniqueOptions(options)
 }
 
 function botOptions() {
-  const ids = globalThis.Bot?.uin || []
   return [
     { label: "不指定", value: "" },
-    ...Array.from(ids)
-      .map(id => {
-        const bot = globalThis.Bot?.[id]
-        const name = [bot?.adapter?.name || bot?.adapter?.id, bot?.nickname].filter(Boolean).join(" ")
+    ...botEntries()
+      .map(([id, bot]) => {
+        const name = [adapterName(bot), bot?.nickname].filter(Boolean).join(" ")
         return makeOption(name, id)
       })
       .filter(item => item.value),
@@ -130,7 +171,8 @@ export function supportGuoba() {
                 label: "拦截条件",
                 component: "Select",
                 required: true,
-                bottomHelpMessage: "输入后回车添加，支持 \\n 换行、{at:*} 任意艾特和 {at:all} 全体艾特",
+                bottomHelpMessage: "输入后回车添加，支持多选和变量",
+                helpMessage: variableHelpMessage,
                 componentProps: {
                   mode: "tags",
                   options: [],
@@ -164,7 +206,8 @@ export function supportGuoba() {
                 field: "keywords",
                 label: "触发条件",
                 component: "Select",
-                bottomHelpMessage: "输入后回车添加，留空表示直接替换，支持 \\n 换行、{at:*} 任意艾特和 {at:all} 全体艾特",
+                bottomHelpMessage: "输入后回车添加，留空表示直接替换，支持多选和变量",
+                helpMessage: variableHelpMessage,
                 componentProps: {
                   mode: "tags",
                   options: [],
@@ -187,7 +230,8 @@ export function supportGuoba() {
                 field: "excludes",
                 label: "排除条件",
                 component: "Select",
-                bottomHelpMessage: "输入后回车添加，命中任意一个就不替换，支持 \\n 换行、{at:*} 任意艾特和 {at:all} 全体艾特",
+                bottomHelpMessage: "输入后回车添加，命中任意一个就不替换，支持多选和变量",
+                helpMessage: variableHelpMessage,
                 componentProps: {
                   mode: "tags",
                   options: [],
@@ -198,7 +242,8 @@ export function supportGuoba() {
                 label: "被替换内容",
                 component: "Select",
                 required: true,
-                bottomHelpMessage: "输入后回车添加，支持多选和 \\n 换行，{at:*} 可匹配任意真实艾特，{at:all} 可匹配全体艾特",
+                bottomHelpMessage: "输入后回车添加，支持多选和变量",
+                helpMessage: variableHelpMessage,
                 componentProps: {
                   mode: "tags",
                   options: [],
@@ -208,7 +253,8 @@ export function supportGuoba() {
                 field: "to",
                 label: "替换为",
                 component: "Input",
-                bottomHelpMessage: "留空表示删除，支持 \\n 表示换行和 {at:目标ID} 艾特",
+                bottomHelpMessage: "留空表示删除，支持变量",
+                helpMessage: variableHelpMessage,
               },
             ],
           },
@@ -330,7 +376,7 @@ export function supportGuoba() {
           component: "Select",
           bottomHelpMessage: "配合 QQ过滤模式使用，留空表示不限制",
           componentProps: {
-            mode: "multiple",
+            mode: "tags",
             options: friendOptions(),
           },
         },
@@ -352,7 +398,7 @@ export function supportGuoba() {
           component: "Select",
           bottomHelpMessage: "配合群过滤模式使用，留空表示不限制",
           componentProps: {
-            mode: "multiple",
+            mode: "tags",
             options: groupOptions(),
           },
         },
