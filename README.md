@@ -105,7 +105,7 @@ HTTP推送会按以下顺序处理：
 
 已兼容 QWild-Plugin。
 
-使用 HTTP 推送时，会按 OneBotHttp-Plugin 指定的协议发送，不会被 QWild 的主动消息接管影响。
+使用 HTTP 推送时，消息会走插件指定的协议端，不会被 QWild 改到其他协议端发送。
 
 ## 鸣谢
 

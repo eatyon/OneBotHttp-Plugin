@@ -210,8 +210,20 @@ const service = new (class OneBotHttpServerService {
     return String(text ?? "") === "{at:*}"
   }
 
+  isAllAtToken(text) {
+    return String(text ?? "").toLowerCase() === "{at:all}"
+  }
+
   isAtRule(text) {
     return /^\{at:[^}]*\}$/.test(String(text ?? ""))
+  }
+
+  isAllAtId(id) {
+    return ["all", "everyone"].includes(String(id ?? "").toLowerCase())
+  }
+
+  atIdToken(id) {
+    return this.isAllAtId(id) ? "{at:all}" : this.atToken(id)
   }
 
   decodeReplaceValue(text) {
@@ -233,6 +245,7 @@ const service = new (class OneBotHttpServerService {
 
   hasReplaceKeyword(keyword, text, atIds) {
     if (this.isAnyAtToken(keyword)) return atIds.length > 0
+    if (this.isAllAtToken(keyword)) return atIds.some(id => this.isAllAtId(id))
     if (this.isAtRule(keyword)) return atIds.includes(keyword.slice(4, -1))
     return text.includes(keyword)
   }
@@ -296,6 +309,46 @@ const service = new (class OneBotHttpServerService {
     return msgs.filter(item => item.type !== baseType || item.text || item.data)
   }
 
+  applyMixedAtReplace(message, conditionText, atIds) {
+    const replace = config.server.replace || []
+    if (!replace.length) return message
+
+    const msgs = []
+    let changed = false
+    let source = ""
+
+    const flush = () => {
+      if (!source) return
+      let text = source
+      for (const item of replace) {
+        if (!this.shouldApplyReplace(item, conditionText, atIds)) continue
+        for (const from of this.replaceListValues(item.from)) {
+          if (!from.includes("{at:") || this.isAnyAtToken(from)) continue
+          text = text.split(from).join(this.decodeReplaceValue(item.to))
+        }
+      }
+      if (text !== source) changed = true
+      msgs.push(...this.splitAtText(text, "text"))
+      source = ""
+    }
+
+    for (const item of message) {
+      if (item.type === "text") {
+        source += item.text || ""
+        continue
+      }
+      if (item.type === "at") {
+        source += this.atIdToken(item.qq)
+        continue
+      }
+      flush()
+      msgs.push(item)
+    }
+    flush()
+
+    return changed ? this.mergeTextSegments(msgs) : message
+  }
+
   mergeTextSegments(message) {
     const msgs = []
     for (const item of message) {
@@ -317,7 +370,7 @@ const service = new (class OneBotHttpServerService {
     const replace = config.server.replace || []
     if (!replace.length || item.type !== "at") return [item]
 
-    const token = this.atToken(item.qq)
+    const token = this.atIdToken(item.qq)
     const rule = replace.find(i => {
       if (!this.shouldApplyReplace(i, conditionText, atIds)) return false
       return this.replaceListValues(i?.from).some(from => from === token || this.isAnyAtToken(from))
@@ -346,6 +399,8 @@ const service = new (class OneBotHttpServerService {
 
     const conditionText = this.messageText(message)
     const atIds = this.messageAtIds(message)
+    message = this.applyMixedAtReplace(message, conditionText, atIds)
+
     const msgs = []
     for (const item of message) {
       if (item.type === "at") {

@@ -130,7 +130,7 @@ export function supportGuoba() {
                 label: "拦截条件",
                 component: "Select",
                 required: true,
-                bottomHelpMessage: "输入后回车添加，支持 \\n 换行和 {at:*} 艾特条件",
+                bottomHelpMessage: "输入后回车添加，支持 \\n 换行、{at:*} 任意艾特和 {at:all} 全体艾特",
                 componentProps: {
                   mode: "tags",
                   options: [],
@@ -164,7 +164,7 @@ export function supportGuoba() {
                 field: "keywords",
                 label: "触发条件",
                 component: "Select",
-                bottomHelpMessage: "输入后回车添加，留空表示直接替换，支持 \\n 换行和 {at:*} 艾特条件",
+                bottomHelpMessage: "输入后回车添加，留空表示直接替换，支持 \\n 换行、{at:*} 任意艾特和 {at:all} 全体艾特",
                 componentProps: {
                   mode: "tags",
                   options: [],
@@ -187,7 +187,7 @@ export function supportGuoba() {
                 field: "excludes",
                 label: "排除条件",
                 component: "Select",
-                bottomHelpMessage: "输入后回车添加，命中任意一个就不替换，支持 \\n 换行和 {at:*} 艾特条件",
+                bottomHelpMessage: "输入后回车添加，命中任意一个就不替换，支持 \\n 换行、{at:*} 任意艾特和 {at:all} 全体艾特",
                 componentProps: {
                   mode: "tags",
                   options: [],
@@ -198,7 +198,7 @@ export function supportGuoba() {
                 label: "被替换内容",
                 component: "Select",
                 required: true,
-                bottomHelpMessage: "输入后回车添加，支持多选和 \\n 换行，{at:*} 可匹配任意真实艾特",
+                bottomHelpMessage: "输入后回车添加，支持多选和 \\n 换行，{at:*} 可匹配任意真实艾特，{at:all} 可匹配全体艾特",
                 componentProps: {
                   mode: "tags",
                   options: [],

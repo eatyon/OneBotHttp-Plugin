@@ -214,9 +214,9 @@ cors: ${config.server.cors}
 addReceiveTime: ${config.server.addReceiveTime}
 # 推送消息格式，array 为消息段，string 为 CQ 码
 messageFormat: ${quote(config.server.messageFormat)}
-# 推送消息关键词拦截，命中后返回成功但不发送，支持 \\n 换行和 {at:*} 艾特条件
+# 推送消息关键词拦截，命中后返回成功但不发送，支持 \\n 换行、{at:*} 任意艾特和 {at:all} 全体艾特
 block: ${stringifyBlock(config.server.block)}
-# 推送消息关键词替换，触发条件、排除条件和被替换内容可多选，to 为空表示删除，支持 \\n 换行和 {at:目标ID} 艾特，{at:*} 可匹配任意真实艾特
+# 推送消息关键词替换，触发条件、排除条件和被替换内容可多选，to 为空表示删除，支持 \\n 换行和 {at:目标ID} 艾特，{at:*} 可匹配任意真实艾特，{at:all} 可匹配全体艾特
 replace: ${stringifyReplace(config.server.replace)}
 # 群聊推送命中关键词时，按位置艾特指定QQ
 at: ${stringifyAt(config.server.at)}
