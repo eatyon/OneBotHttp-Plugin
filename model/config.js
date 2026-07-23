@@ -161,7 +161,7 @@ function normalizeBlock(value) {
   return value
     .map(item => ({
       keywords: normalizeReplaceList(item?.keywords),
-      mode: item?.mode === "all" ? "all" : "any",
+      mode: item?.mode === "any" ? "any" : "all",
     }))
     .filter(item => item.keywords.length)
 }
@@ -176,19 +176,24 @@ function stringifyReplace(list) {
   return `\n${list.map(item => `  - ${stringifyFieldList("keywords", item.keywords, 6)}\n    keywordMode: ${quote(item.keywordMode)}\n    ${stringifyFieldList("excludes", item.excludes, 6)}\n    ${stringifyFieldList("from", item.from, 6)}\n    to: ${quote(item.to)}`).join("\n")}`
 }
 
+function normalizeAtPosition(position) {
+  return ["prefix", "prefixLine", "suffixLine", "suffix"].includes(position) ? position : "prefixLine"
+}
+
 function normalizeAt(value) {
   if (!Array.isArray(value)) return []
   return value
     .map(item => ({
       keyword: String(item?.keyword ?? "").trim(),
       qq: String(item?.qq ?? "").trim(),
+      position: normalizeAtPosition(item?.position),
     }))
     .filter(item => item.keyword && item.qq)
 }
 
 function stringifyAt(list) {
   if (!list?.length) return "[]"
-  return `\n${list.map(item => `    - keyword: ${quote(item.keyword)}\n      qq: ${quote(item.qq)}`).join("\n")}`
+  return `\n${list.map(item => `    - keyword: ${quote(item.keyword)}\n      qq: ${quote(item.qq)}\n      position: ${quote(item.position)}`).join("\n")}`
 }
 
 function stringifyServerConfig() {
@@ -213,7 +218,7 @@ messageFormat: ${quote(config.server.messageFormat)}
 block: ${stringifyBlock(config.server.block)}
 # 推送消息关键词替换，触发条件、排除条件和被替换内容可多选，to 为空表示删除，支持 \\n 换行和 {at:目标ID} 艾特，{at:*} 可匹配任意真实艾特
 replace: ${stringifyReplace(config.server.replace)}
-# 群聊推送命中关键词时，在消息开头艾特指定QQ
+# 群聊推送命中关键词时，按位置艾特指定QQ
 at: ${stringifyAt(config.server.at)}
 `
 }

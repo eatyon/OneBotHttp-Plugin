@@ -372,18 +372,32 @@ const service = new (class OneBotHttpServerService {
     if (!rules.length) return message
 
     const text = this.messageText(message)
-    const qqs = []
+    const ats = {
+      prefix: [],
+      prefixLine: [],
+      suffixLine: [],
+      suffix: [],
+    }
+    const seen = new Set()
+
     for (const rule of rules) {
       if (!rule.keyword || !rule.qq || !text.includes(rule.keyword)) continue
-      if (!qqs.includes(rule.qq)) qqs.push(rule.qq)
+      const position = ats[rule.position] ? rule.position : "prefixLine"
+      const key = `${position}:${rule.qq}`
+      if (seen.has(key)) continue
+      seen.add(key)
+      ats[position].push({ type: "at", qq: rule.qq })
     }
-    if (!qqs.length) return message
 
-    return [
-      ...qqs.map(qq => ({ type: "at", qq })),
-      { type: "text", text: "\n" },
-      ...message,
-    ]
+    if (!seen.size) return message
+
+    const msgs = []
+    if (ats.prefix.length) msgs.push(...ats.prefix, { type: "text", text: " " })
+    if (ats.prefixLine.length) msgs.push(...ats.prefixLine, { type: "text", text: "\n" })
+    msgs.push(...message)
+    if (ats.suffixLine.length) msgs.push({ type: "text", text: "\n" }, ...ats.suffixLine)
+    if (ats.suffix.length) msgs.push({ type: "text", text: " " }, ...ats.suffix)
+    return msgs
   }
 
   cqDecode(text) {

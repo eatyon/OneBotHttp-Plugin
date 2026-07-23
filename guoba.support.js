@@ -140,12 +140,12 @@ export function supportGuoba() {
                 field: "mode",
                 label: "拦截模式",
                 component: "Select",
-                defaultValue: "any",
-                bottomHelpMessage: "默认命中其一",
+                defaultValue: "all",
+                bottomHelpMessage: "默认全部命中",
                 componentProps: {
                   options: [
-                    { label: "命中其一", value: "any" },
                     { label: "全部命中", value: "all" },
+                    { label: "命中其一", value: "any" },
                   ],
                 },
               },
@@ -217,7 +217,7 @@ export function supportGuoba() {
           field: "server.at",
           label: "关键词艾特",
           component: "GSubForm",
-          bottomHelpMessage: "群聊推送命中关键词时，在消息开头艾特指定QQ并换行",
+          bottomHelpMessage: "群聊推送命中关键词时，按位置艾特指定QQ",
           componentProps: {
             multiple: true,
             schemas: [
@@ -232,6 +232,21 @@ export function supportGuoba() {
                 label: "艾特QQ",
                 component: "Input",
                 required: true,
+              },
+              {
+                field: "position",
+                label: "艾特位置",
+                component: "Select",
+                defaultValue: "prefixLine",
+                bottomHelpMessage: "默认开头换行",
+                componentProps: {
+                  options: [
+                    { label: "开头同行", value: "prefix" },
+                    { label: "开头换行", value: "prefixLine" },
+                    { label: "结尾换行", value: "suffixLine" },
+                    { label: "结尾同行", value: "suffix" },
+                  ],
+                },
               },
             ],
           },
