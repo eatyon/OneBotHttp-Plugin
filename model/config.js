@@ -29,19 +29,19 @@ export const defaultConfig = {
   },
   client: {
     enable: false,
-    bot: "",
     endpoint: "",
     token: "",
-    messageFormat: "array",
-    private: true,
-    group: true,
+    bot: "",
     self: false,
-    userMode: "black",
-    userList: [],
-    groupMode: "black",
-    groupList: [],
     prefix: "@bot",
     includePrefix: false,
+    private: true,
+    userMode: "black",
+    userList: [],
+    group: true,
+    groupMode: "black",
+    groupList: [],
+    messageFormat: "array",
   },
 }
 
@@ -84,21 +84,23 @@ function normalizeConfig() {
   config.server.path = String(config.server.path ?? "").trim()
   config.server.messageFormat = normalizeMessageFormat(config.server.messageFormat)
   config.server.block = normalizeBlock(config.server.block)
-  config.client = mergeConfig(structuredClone(defaultConfig.client), config.client)
-  config.client.enable = normalizeBoolean(config.client.enable)
-  config.client.private = normalizeBoolean(config.client.private)
-  config.client.group = normalizeBoolean(config.client.group)
-  config.client.self = normalizeBoolean(config.client.self)
-  config.client.includePrefix = normalizeBoolean(config.client.includePrefix)
-  config.client.bot = String(config.client.bot ?? "").trim()
-  config.client.messageFormat = normalizeMessageFormat(config.client.messageFormat)
   config.server.replace = normalizeReplace(config.server.replace)
   config.server.at = normalizeAt(config.server.at)
-  config.client.userMode = normalizeMode(config.client.userMode)
-  config.client.groupMode = normalizeMode(config.client.groupMode)
-  config.client.userList = normalizeList(config.client.userList)
-  config.client.groupList = normalizeList(config.client.groupList)
+  config.client = mergeConfig(structuredClone(defaultConfig.client), config.client)
+  config.client.enable = normalizeBoolean(config.client.enable)
+  config.client.endpoint = String(config.client.endpoint ?? "").trim()
+  config.client.token = String(config.client.token ?? "")
+  config.client.bot = String(config.client.bot ?? "").trim()
+  config.client.self = normalizeBoolean(config.client.self)
   config.client.prefix = String(config.client.prefix ?? "")
+  config.client.includePrefix = normalizeBoolean(config.client.includePrefix)
+  config.client.private = normalizeBoolean(config.client.private)
+  config.client.userMode = normalizeMode(config.client.userMode)
+  config.client.userList = normalizeList(config.client.userList)
+  config.client.group = normalizeBoolean(config.client.group)
+  config.client.groupMode = normalizeMode(config.client.groupMode)
+  config.client.groupList = normalizeList(config.client.groupList)
+  config.client.messageFormat = normalizeMessageFormat(config.client.messageFormat)
 }
 
 function quote(value) {
@@ -227,32 +229,32 @@ function stringifyClientConfig() {
   return `# HTTP上报：把云崽收到的消息上报给外部程序
 # 是否启用上报
 enable: ${config.client.enable}
-# 上报哪个协议端收到的消息，留空表示全部协议端
-bot: ${quote(config.client.bot)}
 # 外部事件接收地址
 endpoint: ${quote(config.client.endpoint)}
 # 访问 Token 留空表示不校验
 token: ${quote(config.client.token)}
-# 上报消息格式，array 为消息段，string 为 CQ 码
-messageFormat: ${quote(config.client.messageFormat)}
-# 是否上报私聊
-private: ${config.client.private}
-# 是否上报群聊
-group: ${config.client.group}
+# 上报哪个协议端收到的消息，留空表示全部协议端
+bot: ${quote(config.client.bot)}
 # 是否上报自身消息
 self: ${config.client.self}
-# QQ过滤模式，white 只上报名单内 QQ，black 排除名单内 QQ
-userMode: ${quote(config.client.userMode)}
-# QQ名单
-userList: ${stringifyList(config.client.userList)}
-# 群过滤模式，white 只上报名单内群，black 排除名单内群
-groupMode: ${quote(config.client.groupMode)}
-# 群名单
-groupList: ${stringifyList(config.client.groupList)}
 # 上报前缀，@bot 表示艾特机器人触发，留空表示不限制前缀
 prefix: ${quote(config.client.prefix)}
 # 是否保留文本前缀，机器人艾特始终会自动去掉
 includePrefix: ${config.client.includePrefix}
+# 是否上报私聊
+private: ${config.client.private}
+# QQ过滤模式，white 只上报名单内 QQ，black 排除名单内 QQ
+userMode: ${quote(config.client.userMode)}
+# QQ名单
+userList: ${stringifyList(config.client.userList)}
+# 是否上报群聊
+group: ${config.client.group}
+# 群过滤模式，white 只上报名单内群，black 排除名单内群
+groupMode: ${quote(config.client.groupMode)}
+# 群名单
+groupList: ${stringifyList(config.client.groupList)}
+# 上报消息格式，array 为消息段，string 为 CQ 码
+messageFormat: ${quote(config.client.messageFormat)}
 `
 }
 export async function configSave() {

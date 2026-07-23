@@ -218,18 +218,18 @@ const client = new (class OneBotHttpClientService {
     const selfId = String(e.self_id || e.bot?.uin || "")
     if (config.client.bot && selfId !== config.client.bot) return false
     if (!config.client.self && this.isSelfMessage(e)) return false
+    const prefix = this.matchPrefix(e)
+    if (prefix === false) return false
 
     const isGroup = e.isGroup || e.message_type === "group"
     if (isGroup) {
       if (!config.client.group) return false
-      if (!this.matchList(e.group_id, config.client.groupMode, config.client.groupList)) return false
     } else {
       if (!config.client.private) return false
     }
 
     if (!this.matchList(e.user_id, config.client.userMode, config.client.userList)) return false
-    const prefix = this.matchPrefix(e)
-    if (prefix === false) return false
+    if (isGroup && !this.matchList(e.group_id, config.client.groupMode, config.client.groupList)) return false
     return prefix
   }
 

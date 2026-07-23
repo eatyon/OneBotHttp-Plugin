@@ -1,29 +1,29 @@
 # HTTP上报：把云崽收到的消息上报给外部程序
 # 是否启用上报
 enable: false
-# 上报哪个协议端收到的消息，留空表示全部协议端
-bot: ""
 # 外部事件接收地址
 endpoint: ""
 # 访问 Token 留空表示不校验
 token: ""
-# 上报消息格式，array 为消息段，string 为 CQ 码
-messageFormat: "array"
-# 是否上报私聊
-private: true
-# 是否上报群聊
-group: true
+# 上报哪个协议端收到的消息，留空表示全部协议端
+bot: ""
 # 是否上报自身消息
 self: false
-# QQ过滤模式，white 只上报名单内 QQ，black 排除名单内 QQ
-userMode: "black"
-# QQ名单
-userList: []
-# 群过滤模式，white 只上报名单内群，black 排除名单内群
-groupMode: "black"
-# 群名单
-groupList: []
 # 上报前缀，@bot 表示艾特机器人触发，留空表示不限制前缀
 prefix: "@bot"
 # 是否保留文本前缀，机器人艾特始终会自动去掉
 includePrefix: false
+# 是否上报私聊
+private: true
+# QQ过滤模式，white 只上报名单内 QQ，black 排除名单内 QQ
+userMode: "black"
+# QQ名单
+userList: []
+# 是否上报群聊
+group: true
+# 群过滤模式，white 只上报名单内群，black 排除名单内群
+groupMode: "black"
+# 群名单
+groupList: []
+# 上报消息格式，array 为消息段，string 为 CQ 码
+messageFormat: "array"
