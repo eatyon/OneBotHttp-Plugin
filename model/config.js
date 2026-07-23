@@ -29,19 +29,19 @@ export const defaultConfig = {
   },
   client: {
     enable: false,
+    bot: "",
     endpoint: "",
     token: "",
-    bot: "",
+    messageFormat: "array",
     self: false,
-    prefix: "@bot",
-    includePrefix: false,
     private: true,
+    group: true,
     userMode: "black",
     userList: [],
-    group: true,
     groupMode: "black",
     groupList: [],
-    messageFormat: "array",
+    prefix: "@bot",
+    includePrefix: false,
   },
 }
 
@@ -229,32 +229,32 @@ function stringifyClientConfig() {
   return `# HTTP上报：把云崽收到的消息上报给外部程序
 # 是否启用上报
 enable: ${config.client.enable}
+# 上报哪个协议端收到的消息，留空表示全部协议端
+bot: ${quote(config.client.bot)}
 # 外部事件接收地址
 endpoint: ${quote(config.client.endpoint)}
 # 访问 Token 留空表示不校验
 token: ${quote(config.client.token)}
-# 上报哪个协议端收到的消息，留空表示全部协议端
-bot: ${quote(config.client.bot)}
+# 上报消息格式，array 为消息段，string 为 CQ 码
+messageFormat: ${quote(config.client.messageFormat)}
 # 是否上报自身消息
 self: ${config.client.self}
-# 上报前缀，@bot 表示艾特机器人触发，留空表示不限制前缀
-prefix: ${quote(config.client.prefix)}
-# 是否保留文本前缀，机器人艾特始终会自动去掉
-includePrefix: ${config.client.includePrefix}
 # 是否上报私聊
 private: ${config.client.private}
+# 是否上报群聊
+group: ${config.client.group}
 # QQ过滤模式，white 只上报名单内 QQ，black 排除名单内 QQ
 userMode: ${quote(config.client.userMode)}
 # QQ名单
 userList: ${stringifyList(config.client.userList)}
-# 是否上报群聊
-group: ${config.client.group}
 # 群过滤模式，white 只上报名单内群，black 排除名单内群
 groupMode: ${quote(config.client.groupMode)}
 # 群名单
 groupList: ${stringifyList(config.client.groupList)}
-# 上报消息格式，array 为消息段，string 为 CQ 码
-messageFormat: ${quote(config.client.messageFormat)}
+# 上报前缀，@bot 表示艾特机器人触发，留空表示不限制前缀
+prefix: ${quote(config.client.prefix)}
+# 是否保留上报前缀，机器人艾特始终会自动去掉
+includePrefix: ${config.client.includePrefix}
 `
 }
 export async function configSave() {

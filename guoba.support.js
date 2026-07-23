@@ -308,6 +308,15 @@ export function supportGuoba() {
           bottomHelpMessage: "开启后把云崽收到的消息上报给外部程序",
         },
         {
+          field: "client.bot",
+          label: "上报协议端",
+          component: "Select",
+          bottomHelpMessage: "选择要上报哪个协议端收到的消息，留空表示全部协议端",
+          componentProps: {
+            options: botOptions(),
+          },
+        },
+        {
           field: "client.endpoint",
           label: "上报地址",
           component: "Input",
@@ -320,12 +329,15 @@ export function supportGuoba() {
           bottomHelpMessage: "访问 Token 留空表示不校验",
         },
         {
-          field: "client.bot",
-          label: "上报协议端",
+          field: "client.messageFormat",
+          label: "上报消息格式",
           component: "Select",
-          bottomHelpMessage: "选择要上报哪个协议端收到的消息，留空表示全部协议端",
+          bottomHelpMessage: "上报给外部程序的 message 格式，array 为消息段，string 为 CQ 码",
           componentProps: {
-            options: botOptions(),
+            options: [
+              { label: "array", value: "array" },
+              { label: "string", value: "string" },
+            ],
           },
         },
         {
@@ -335,22 +347,16 @@ export function supportGuoba() {
           bottomHelpMessage: "是否上报机器人自己发送的消息",
         },
         {
-          field: "client.prefix",
-          label: "上报前缀",
-          component: "Input",
-          bottomHelpMessage: "@bot表示艾特机器人触发，留空表示不限制前缀",
-        },
-        {
-          field: "client.includePrefix",
-          label: "保留前缀",
-          component: "Switch",
-          bottomHelpMessage: "开启后保留文本前缀，机器人艾特始终会自动去掉",
-        },
-        {
           field: "client.private",
           label: "上报私聊",
           component: "Switch",
           bottomHelpMessage: "是否上报私聊消息",
+        },
+        {
+          field: "client.group",
+          label: "上报群聊",
+          component: "Switch",
+          bottomHelpMessage: "是否上报群聊消息",
         },
         {
           field: "client.userMode",
@@ -375,12 +381,6 @@ export function supportGuoba() {
           },
         },
         {
-          field: "client.group",
-          label: "上报群聊",
-          component: "Switch",
-          bottomHelpMessage: "是否上报群消息",
-        },
-        {
           field: "client.groupMode",
           label: "群过滤模式",
           component: "Select",
@@ -403,16 +403,16 @@ export function supportGuoba() {
           },
         },
         {
-          field: "client.messageFormat",
-          label: "上报消息格式",
-          component: "Select",
-          bottomHelpMessage: "上报给外部程序的 message 格式，array 为消息段，string 为 CQ 码",
-          componentProps: {
-            options: [
-              { label: "array", value: "array" },
-              { label: "string", value: "string" },
-            ],
-          },
+          field: "client.prefix",
+          label: "上报前缀",
+          component: "Input",
+          bottomHelpMessage: "@bot表示艾特机器人触发，留空表示不限制前缀",
+        },
+        {
+          field: "client.includePrefix",
+          label: "保留前缀",
+          component: "Switch",
+          bottomHelpMessage: "开启后保留上报前缀，机器人艾特始终会自动去掉",
         },
       ],
       getConfigData() {
